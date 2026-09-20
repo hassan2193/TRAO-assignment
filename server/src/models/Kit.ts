@@ -56,7 +56,7 @@ const kitSchema = new Schema<KitDocument>(
     fingerprint: { type: String, required: true, index: true },
     kit: { type: Schema.Types.Mixed, default: null },
     warnings: [{ code: String, message: String, _id: false }],
-    error: { code: String, message: String },
+    error: { type: Schema.Types.Mixed, default: null },
     progressEvents: [progressEventSchema],
     practiceLog: [practiceLogSchema],
   },

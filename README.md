@@ -5,6 +5,15 @@ editable interview prep kit: a company brief, a role breakdown, a categorised qu
 and a day-by-day study schedule — researched, generated, checked for coverage, and rebuilt where it comes
 up short, without a human in the loop.
 
+## Live Deployment
+
+- **Frontend**: [https://trao-assignment-1.onrender.com](https://trao-assignment-1.onrender.com)
+- **Backend**: [https://trao-assignment-5jq7.onrender.com](https://trao-assignment-5jq7.onrender.com)
+- **Database**: MongoDB Atlas
+
+The deployed frontend talks to the deployed backend over `NEXT_PUBLIC_API_URL`, which is set to the backend
+URL above at build time — the frontend never hardcodes an API host.
+
 ## 1. Project overview & tech stack
 
 | Layer | Choice | Notes |
@@ -12,7 +21,7 @@ up short, without a human in the loop.
 | Frontend | Next.js 15 (App Router) + Tailwind CSS | React 19. Client components talk to the API over `fetch` with cookies. |
 | Backend | Node.js + Express, TypeScript, ESM | REST API, JWT-in-httpOnly-cookie sessions. |
 | Database | MongoDB (Mongoose) | One `Kit` document per generated kit; the Appendix A structure is stored as a validated sub-document. |
-| LLM | Google Gemini (`@google/genai`), model `gemini-flash-latest` by default | Backend-only; `GEMINI_API_KEY` is never sent to the browser. `GEMINI_MODEL` overrides it, e.g. to pin an exact version. |
+| LLM | Google Gemini (`@google/genai`), model `gemini-flash-lite-latest` by default | Backend-only; `GEMINI_API_KEY` is never sent to the browser. `GEMINI_MODEL` overrides it, e.g. to pin an exact version. |
 | Validation | Zod | One schema is the source of truth for the Appendix A kit shape, request bodies, and LLM structured-output responses. |
 | Tests | Vitest | Pure-function pipeline logic (coverage, schedule, link ranking, HTML extraction, validation, SSRF) is unit tested. |
 
@@ -100,18 +109,26 @@ for Gemini retries.
 
 ### Deployment
 
-- **Backend**: any free Node host that runs a long-lived process (Render, Railway, Fly.io). Build command
-  `npm install && npm run build --workspace=server`, start command `npm run start --workspace=server`. Set
-  the environment variables from `server/.env.example` — at minimum `MONGODB_URI`, `JWT_SECRET`,
-  `GEMINI_API_KEY`, and `CORS_ORIGIN` (the deployed frontend's origin). Set `NODE_ENV=production` so SSRF
-  protection actually rejects private-network targets and the session cookie is issued with
-  `Secure; SameSite=None` (required for a cross-origin frontend to send it).
-- **Frontend**: Vercel (or any Next.js host). Set `NEXT_PUBLIC_API_URL` to the deployed backend's URL.
-- **Database**: MongoDB Atlas free tier; add the backend host's outbound IP (or `0.0.0.0/0` for a PaaS with
-  no static IP) to its network access list.
+The project is deployed as two Render web services plus a MongoDB Atlas cluster (see [Live
+Deployment](#live-deployment) above); the same setup works on any equivalent Node host (Railway, Fly.io) or
+Next.js host (Vercel) if you deploy it yourself.
 
-No environment variable is optional except the coverage/crawl/fetch tuning knobs, which have working
-defaults — see `server/.env.example` for what each one does.
+- **Backend**: deployed on Render at `https://trao-assignment-5jq7.onrender.com`. Build command
+  `npm install && npm run build --workspace=server`, start command `npm run start --workspace=server`.
+  `NODE_ENV=production` is set, so SSRF protection rejects private-network targets and the session cookie
+  is issued with `Secure; SameSite=None` (required for the cross-origin frontend to send it). Required
+  production environment variables: `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`. `CORS_ORIGIN` is
+  optional — the production frontend origin (`https://trao-assignment-1.onrender.com`) and
+  `http://localhost:3000` are already allowed by default by the current CORS implementation (see
+  `server/src/config/env.ts`); `CORS_ORIGIN` (comma-separated) only adds further origins on top, it never
+  replaces those defaults.
+- **Frontend**: deployed on Render at `https://trao-assignment-1.onrender.com`. `NEXT_PUBLIC_API_URL` is
+  set to the backend URL above.
+- **Database**: MongoDB Atlas free tier; the backend host's outbound IP (or `0.0.0.0/0` for a PaaS with no
+  static IP) is added to its network access list.
+
+No environment variable is optional except `CORS_ORIGIN` and the coverage/crawl/fetch tuning knobs, which
+have working defaults — see `server/.env.example` for what each one does.
 
 ## 3. High-level architecture
 

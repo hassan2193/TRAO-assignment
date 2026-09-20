@@ -12,7 +12,9 @@ import { kitPracticeRouter } from "./routes/kitPractice.routes.js";
 export function createApp() {
   const app = express();
 
-  app.use(cors({ origin: env.corsOrigin, credentials: true }));
+  // origin as an array: cors reflects back the specific matched Origin
+  // header (never "*"), which is required whenever credentials: true.
+  app.use(cors({ origin: env.corsOrigins, credentials: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: "2mb" }));
 

@@ -8,6 +8,20 @@ function readEnv(name: string, fallback?: string): string {
   return value;
 }
 
+// Origins the API accepts credentialed (cookie-based) requests from. Always
+// includes local dev and the deployed frontend, so production works out of
+// the box even if CORS_ORIGIN isn't set on the host; CORS_ORIGIN (comma-
+// separated) adds further origins on top rather than replacing these.
+const DEFAULT_CORS_ORIGINS = ["http://localhost:3000", "https://trao-assignment-1.onrender.com"];
+
+function resolveCorsOrigins(): string[] {
+  const extra = (process.env.CORS_ORIGIN ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  return Array.from(new Set([...DEFAULT_CORS_ORIGINS, ...extra]));
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   isProduction: (process.env.NODE_ENV ?? "development") === "production",
@@ -18,7 +32,7 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/interview_prep_kit",
   jwtSecret: process.env.JWT_SECRET ?? "dev-secret-change-me",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
-  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
+  corsOrigins: resolveCorsOrigins(),
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   geminiModel: process.env.GEMINI_MODEL ?? "gemini-flash-lite-latest",
   // Allows the batch evaluator / dev environment to target localhost /

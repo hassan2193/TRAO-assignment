@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { api, ApiError } from "@/lib/api";
-import type { Kit, KitRecord } from "@/lib/types";
+import { isCompleteKit, type Kit, type KitRecord } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { Tabs } from "@/components/Tabs";
@@ -61,6 +61,15 @@ export default function KitDetailPage() {
   }
 
   function onKitUpdated(kit: Kit) {
+    // Defense in depth against the exact bug class this page hit in
+    // production: a mutation endpoint responding with the wrong nesting
+    // level. If a panel ever hands back something that isn't actually a
+    // complete Kit, surface it as an error instead of silently corrupting
+    // `record.kit` (which previously made every subsequent render crash).
+    if (!isCompleteKit(kit)) {
+      setError("The server returned an unexpected response shape for that change. It was not applied — please refresh and try again.");
+      return;
+    }
     setRecord((prev) => (prev ? { ...prev, kit } : prev));
   }
 
@@ -81,13 +90,21 @@ export default function KitDetailPage() {
     return <p className="text-slate-500">Loading kit…</p>;
   }
 
+  // record.kit being non-null doesn't by itself mean its shape is right —
+  // see lib/types.ts#isCompleteKit. A kit reported "ready" that fails this
+  // check is a real bug (a response-shape mismatch, a corrupted record),
+  // not a normal loading state, so it gets its own explicit message rather
+  // than silently falling through to a panel that assumes complete data.
+  const kitLooksComplete = isCompleteKit(record.kit);
+  const kitLooksBroken = record.status === "ready" && record.kit && !kitLooksComplete;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{record.kit?.role.title || "Untitled role"}</h1>
+          <h1 className="text-xl font-semibold text-slate-900">{record.kit?.role?.title || "Untitled role"}</h1>
           <p className="text-sm text-slate-500">
-            {record.kit?.source.company || record.input.companyUrl} · {record.input.days} day
+            {record.kit?.source?.company || record.input.companyUrl} · {record.input.days} day
             {record.input.days === 1 ? "" : "s"} to prepare
           </p>
         </div>
@@ -129,7 +146,19 @@ export default function KitDetailPage() {
         </details>
       )}
 
-      {record.status === "ready" && record.kit && (
+      {kitLooksBroken && (
+        <div className="card">
+          <p className="text-red-700">
+            This kit&apos;s data looks incomplete or malformed, so it can&apos;t be displayed safely. This is
+            unexpected — please report it. In the meantime, try regenerating the kit.
+          </p>
+          <button type="button" className="btn-primary mt-3" onClick={startGeneration} disabled={starting}>
+            {starting ? "Starting..." : "Regenerate kit"}
+          </button>
+        </div>
+      )}
+
+      {record.status === "ready" && kitLooksComplete && record.kit && (
         <Tabs
           tabs={[
             { id: "brief", label: "Company brief", content: <CompanyBriefPanel kitId={kitId} kit={record.kit} onUpdated={onKitUpdated} /> },

@@ -4,7 +4,7 @@ import { requireAuth, type AuthedRequest } from "../auth/middleware.js";
 import { validateBody } from "../middleware/validate.js";
 import { CreateKitSchema, CreateKitsBatchSchema, UpdateCompanyBriefSchema, UpdateRoleSchema } from "../validation/requestSchemas.js";
 import { fingerprintCase } from "../services/hash.js";
-import { loadOwnedKit, saveValidatedKit } from "../services/kitAccess.js";
+import { loadOwnedKit, saveValidatedKit, respondWithKit } from "../services/kitAccess.js";
 import { runGenerationForKit, rebuildSchedule } from "../services/generationRunner.js";
 import { crawlSite } from "../pipeline/crawler.js";
 import { researchHiringProcess } from "../pipeline/stage6_hiringResearch.js";
@@ -86,7 +86,7 @@ kitsRouter.patch(
     kit.kit.company_brief = { ...kit.kit.company_brief, ...briefParsed.data };
     kit.kit.role = { ...kit.kit.role, ...roleParsed.data };
     await saveValidatedKit(kit);
-    res.json({ kit });
+    respondWithKit(res, kit);
   }
 );
 
@@ -149,7 +149,7 @@ kitsRouter.post("/:id/regenerate/company", async (req: AuthedRequest, res) => {
     kit.kit.source.pages_used = crawl.pages.map((p) => p.url);
     kit.kit.source.researched_at = new Date().toISOString();
     await saveValidatedKit(kit);
-    res.json({ kit, hiringInsights: hiring, publicDiscussion });
+    respondWithKit(res, kit, { hiringInsights: hiring, publicDiscussion });
   } catch (err) {
     res.status(502).json({ error: { code: "REGENERATE_COMPANY_FAILED", message: (err as Error).message } });
   }
@@ -164,5 +164,5 @@ kitsRouter.post("/:id/regenerate/schedule", async (req: AuthedRequest, res) => {
   const days = typeof req.body?.days === "number" ? req.body.days : kit.kit.schedule.days_available;
   kit.kit.schedule = rebuildSchedule(kit.kit.role.requirements, kit.kit.questions, days);
   await saveValidatedKit(kit);
-  res.json({ kit });
+  respondWithKit(res, kit);
 });

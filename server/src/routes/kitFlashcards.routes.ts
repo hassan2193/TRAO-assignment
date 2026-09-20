@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth, type AuthedRequest } from "../auth/middleware.js";
 import { validateBody } from "../middleware/validate.js";
 import { CreateFlashcardSchema, ReorderQuestionsSchema, UpdateFlashcardSchema } from "../validation/requestSchemas.js";
-import { loadOwnedKit, saveValidatedKit } from "../services/kitAccess.js";
+import { loadOwnedKit, saveValidatedKit, respondWithKit } from "../services/kitAccess.js";
 import { IdAllocator } from "../pipeline/idAllocator.js";
 import type { Flashcard } from "../validation/kitSchema.js";
 
@@ -21,7 +21,7 @@ kitFlashcardsRouter.post("/:id/flashcards", validateBody(CreateFlashcardSchema),
   const flashcard: Flashcard = { ...req.body, id: ids.next(), state: "pinned" };
   kit.kit.flashcards.push(flashcard);
   await saveValidatedKit(kit);
-  res.status(201).json({ kit });
+  respondWithKit(res, kit, {}, 201);
 });
 
 kitFlashcardsRouter.patch(
@@ -39,7 +39,7 @@ kitFlashcardsRouter.patch(
     Object.assign(flashcard, req.body);
     if (flashcard.state === "generated") flashcard.state = "edited";
     await saveValidatedKit(kit);
-    res.json({ kit });
+    respondWithKit(res, kit);
   }
 );
 
@@ -49,7 +49,7 @@ kitFlashcardsRouter.delete("/:id/flashcards/:flashcardId", async (req: AuthedReq
 
   kit.kit.flashcards = kit.kit.flashcards.filter((f) => f.id !== req.params.flashcardId);
   await saveValidatedKit(kit);
-  res.json({ kit });
+  respondWithKit(res, kit);
 });
 
 kitFlashcardsRouter.post(
@@ -69,6 +69,6 @@ kitFlashcardsRouter.post(
     }
     kit.kit.flashcards = orderedIds.map((id) => byId.get(id)!);
     await saveValidatedKit(kit);
-    res.json({ kit });
+    respondWithKit(res, kit);
   }
 );

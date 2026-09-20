@@ -6,7 +6,7 @@ import {
   ReorderQuestionsSchema,
   UpdateQuestionSchema,
 } from "../validation/requestSchemas.js";
-import { loadOwnedKit, saveValidatedKit } from "../services/kitAccess.js";
+import { loadOwnedKit, saveValidatedKit, respondWithKit } from "../services/kitAccess.js";
 import { rebuildSchedule } from "../services/generationRunner.js";
 import { IdAllocator } from "../pipeline/idAllocator.js";
 import {
@@ -33,7 +33,7 @@ kitQuestionsRouter.post("/:id/questions", validateBody(CreateQuestionSchema), as
   kit.kit.questions.push(question);
   kit.kit.schedule = rebuildSchedule(kit.kit.role.requirements, kit.kit.questions, kit.kit.schedule.days_available);
   await saveValidatedKit(kit);
-  res.status(201).json({ kit });
+  respondWithKit(res, kit, {}, 201);
 });
 
 kitQuestionsRouter.patch(
@@ -51,7 +51,7 @@ kitQuestionsRouter.patch(
     Object.assign(question, req.body);
     if (question.state === "generated") question.state = "edited";
     await saveValidatedKit(kit);
-    res.json({ kit });
+    respondWithKit(res, kit);
   }
 );
 
@@ -62,7 +62,7 @@ kitQuestionsRouter.delete("/:id/questions/:questionId", async (req: AuthedReques
   kit.kit.questions = kit.kit.questions.filter((q) => q.id !== req.params.questionId);
   kit.kit.schedule = rebuildSchedule(kit.kit.role.requirements, kit.kit.questions, kit.kit.schedule.days_available);
   await saveValidatedKit(kit);
-  res.json({ kit });
+  respondWithKit(res, kit);
 });
 
 kitQuestionsRouter.post(
@@ -82,7 +82,7 @@ kitQuestionsRouter.post(
     }
     kit.kit.questions = orderedIds.map((id) => byId.get(id)!);
     await saveValidatedKit(kit);
-    res.json({ kit });
+    respondWithKit(res, kit);
   }
 );
 
@@ -133,7 +133,7 @@ kitQuestionsRouter.post("/:id/regenerate/questions/:category", async (req: Authe
     kit.kit.questions = [...otherQuestions, ...preservedInCategory, ...fresh];
     kit.kit.schedule = rebuildSchedule(kit.kit.role.requirements, kit.kit.questions, kit.kit.schedule.days_available);
     await saveValidatedKit(kit);
-    res.json({ kit });
+    respondWithKit(res, kit);
   } catch (err) {
     res.status(502).json({ error: { code: "REGENERATE_QUESTIONS_FAILED", message: (err as Error).message } });
   }

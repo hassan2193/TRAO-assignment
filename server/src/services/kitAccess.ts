@@ -1,3 +1,4 @@
+import type { Response } from "express";
 import { KitModel, type KitDocument } from "../models/Kit.js";
 import { validateKit } from "../validation/kitSchema.js";
 
@@ -35,4 +36,28 @@ export async function saveValidatedKit(kit: KitDocument): Promise<void> {
   }
   kit.markModified("kit");
   await kit.save();
+}
+
+/**
+ * Sends the nested Appendix A kit content — never the KitDocument wrapper
+ * (`{_id, userId, status, kit, warnings, ...}`) that `kit` actually is.
+ *
+ * Every builder mutation endpoint (edit/add/delete/reorder/regenerate)
+ * responds through this. The frontend types every one of those calls as
+ * `Promise<{ kit: Kit }>` and merges the result straight into its local
+ * `record.kit` — if a route ever responds with the raw KitDocument instead
+ * (`res.json({ kit })` where `kit` is the mongoose document), the nested
+ * Appendix A content ends up one level too deep at `record.kit.kit`, so
+ * `record.kit.role` — and every other top-level field — silently becomes
+ * `undefined` while `record.kit` itself stays a truthy object. That's a
+ * real bug this route shape caused in production: `record.kit` not being
+ * null doesn't mean its shape is right, and no amount of optional chaining
+ * on the frontend fixes a contract mismatch at the source.
+ *
+ * `GET /api/kits/:id` is the one deliberate exception — it's meant to
+ * return the full document (status, progress log, etc.) as `KitRecord`, so
+ * it sends `{ kit }` directly rather than going through this helper.
+ */
+export function respondWithKit(res: Response, kit: KitDocument, extra: Record<string, unknown> = {}, status = 200): void {
+  res.status(status).json({ kit: kit.kit, ...extra });
 }

@@ -105,6 +105,37 @@ export interface KitRecord {
   updatedAt: string;
 }
 
+/**
+ * Runtime shape guard for a `Kit`, used at the one place a generated kit
+ * crosses from "network response" to "rendered UI" (kits/[id]/page.tsx).
+ *
+ * The backend's Zod schema (server/src/validation/kitSchema.ts) is the
+ * real source of truth and guarantees a *saved* kit is always complete —
+ * this guard is not a substitute for that. It exists because a kit can
+ * reach the frontend as a truthy-but-malformed object without the backend
+ * schema ever being violated: a response-shape mismatch (returning the
+ * wrong nesting level), a stale cached response, or any other transport
+ * bug. `kit` being non-null does not by itself mean its shape is right, so
+ * every field this checks is exactly the set of top-level sections the Kit
+ * Detail page and its panels read without further guards: role, source,
+ * company_brief, questions, flashcards, schedule, coverage.
+ */
+export function isCompleteKit(kit: Kit | null | undefined): kit is Kit {
+  if (!kit || typeof kit !== "object") return false;
+  return (
+    !!kit.role &&
+    Array.isArray(kit.role.requirements) &&
+    !!kit.source &&
+    !!kit.company_brief &&
+    Array.isArray(kit.questions) &&
+    Array.isArray(kit.flashcards) &&
+    !!kit.schedule &&
+    Array.isArray(kit.schedule.days) &&
+    !!kit.coverage &&
+    Array.isArray(kit.coverage.uncovered_requirement_ids)
+  );
+}
+
 export interface WeakSpotsReport {
   weakRequirements: { id: string; text: string; priority: string; reason: string; averageConfidence: number | null }[];
   weakFlashcards: { id: string; front: string; lastConfidence: number | null; covered: boolean }[];

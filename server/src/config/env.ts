@@ -17,7 +17,7 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
-  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-flash-lite-latest",
   // Allows the batch evaluator / dev environment to target localhost /
   // private-network fixture servers (e.g. http://localhost:8099/acme/) used
   // for grading, while production deployments still reject SSRF targets.

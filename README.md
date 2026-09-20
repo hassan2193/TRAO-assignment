@@ -12,7 +12,7 @@ up short, without a human in the loop.
 | Frontend | Next.js 15 (App Router) + Tailwind CSS | React 19. Client components talk to the API over `fetch` with cookies. |
 | Backend | Node.js + Express, TypeScript, ESM | REST API, JWT-in-httpOnly-cookie sessions. |
 | Database | MongoDB (Mongoose) | One `Kit` document per generated kit; the Appendix A structure is stored as a validated sub-document. |
-| LLM | Google Gemini (`@google/genai`), model `gemini-2.0-flash` by default | Backend-only; `GEMINI_API_KEY` is never sent to the browser. |
+| LLM | Google Gemini (`@google/genai`), model `gemini-flash-latest` by default | Backend-only; `GEMINI_API_KEY` is never sent to the browser. `GEMINI_MODEL` overrides it, e.g. to pin an exact version. |
 | Validation | Zod | One schema is the source of truth for the Appendix A kit shape, request bodies, and LLM structured-output responses. |
 | Tests | Vitest | Pure-function pipeline logic (coverage, schedule, link ranking, HTML extraction, validation, SSRF) is unit tested. |
 

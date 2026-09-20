@@ -11,7 +11,10 @@ function readEnv(name: string, fallback?: string): string {
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   isProduction: (process.env.NODE_ENV ?? "development") === "production",
-  port: Number(process.env.PORT ?? 4000),
+  // Render (and most PaaS hosts) inject PORT and require the app to bind to
+  // it; 4000 is only the local-dev fallback. `||` (not `??`) so an empty
+  // string is also treated as "not set" rather than becoming port 0.
+  port: Number(process.env.PORT || 4000),
   mongoUri: process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/interview_prep_kit",
   jwtSecret: process.env.JWT_SECRET ?? "dev-secret-change-me",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
